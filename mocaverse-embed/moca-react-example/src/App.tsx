@@ -1,17 +1,12 @@
-import { useEffect, useState } from "react";
+import { CHAIN_NAMESPACES, WEB3AUTH_NETWORK } from "@web3auth/base";
 import MocaEmbed from "@web3auth/mocaverse-embed";
-import { WEB3AUTH_NETWORK, CHAIN_NAMESPACES } from "@web3auth/base";
+import { useEffect, useState } from "react";
 import Web3 from "web3";
 
 import "./App.css";
 
 const web3AuthClientId =
   "BANbxuTYFGeYi8HxUzaPQkvQlSAXiKRtUqb1vqsXbsZsZKrNr05PEPCM2J2PhUJZpIYl0XzQa6jxUjnYzSU9LXY"; // get from https://dashboard.web3auth.io
-
-const mocaEmbed = new MocaEmbed({
-  web3AuthClientId,
-  web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_MAINNET,
-});
 
 const chainConfig = {
   chainNamespace: CHAIN_NAMESPACES.EIP155,
@@ -27,45 +22,74 @@ const chainConfig = {
 };
 
 function App() {
+  const [mocaEmbed, setMocaEmbed] = useState<MocaEmbed>();
   const [loggedIn, setLoggedIn] = useState(false);
+  const [eoaAccount, setEoaAccount] = useState("");
+  const [aaAccount, setAaAcount] = useState("");
 
   useEffect(() => {
     const init = async () => {
       try {
+        const mocaEmbed = new MocaEmbed({
+          web3AuthClientId,
+          web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_MAINNET,
+        });
         await mocaEmbed.init({
           buildEnv: "testing",
           chainConfig,
           enableLogging: true,
-          whiteLabel: {
-            showWidgetButton: true,
-            buttonPosition: "bottom-left",
-          }
+        });
+        // Update provider on chain change
+        mocaEmbed.provider.on("chainChanged", async (chain) => {
+          console.log("check: chainChanged", chain);
+          // getCurrentChain();
         });
 
-        if (mocaEmbed.provider.isConnected()) {
-          setLoggedIn(true);
-        }
+        // Update provider on accountsChanged
+        mocaEmbed.provider.on("accountsChanged", async (accounts) => {
+          console.log("check: accountsChanged", accounts);
+          if (eoaAccount.length > 0 && accounts.length === 0) {
+            // logout
+            setEoaAccount("");
+            setAaAcount("");
+            setLoggedIn(false);
+            return;
+          }
+          if (accounts.length > 0) {
+            // auto login
+            // TODO: fix issue that it returns 1 account
+          }
+        });
+        setMocaEmbed(mocaEmbed);
       } catch (error) {
         console.error(error);
       }
     };
-
     init();
-  }, []);
+  }, [eoaAccount]);
 
   const login = async () => {
-    const accounts = await mocaEmbed.login();
-    uiConsole(accounts);
+    try {
+      const accounts = await mocaEmbed?.login();
+      if (accounts) {
+        setEoaAccount(accounts[1]);
+        setAaAcount(accounts[0]);
+        setLoggedIn(true);
+        uiConsole(accounts);
+      }
+    } catch (error) {
+      uiConsole(error);
+    }
   };
 
   const getUserInfo = async () => {
-    const user = mocaEmbed.getUserInfo();
+    const user = await mocaEmbed?.getUserInfo();
     uiConsole(user);
   };
 
   const logout = async () => {
     // IMP START - Logout
-    await mocaEmbed.logout();
+    await mocaEmbed?.logout();
     // IMP END - Logout
     setLoggedIn(false);
     uiConsole("logged out");
@@ -77,7 +101,7 @@ function App() {
       uiConsole("Not logged in");
       return;
     }
-    const web3 = new Web3(mocaEmbed.provider as any);
+    const web3 = new Web3(mocaEmbed?.provider as any);
 
     // Get user's Ethereum public address
     const address = await web3.eth.getAccounts();
@@ -89,14 +113,11 @@ function App() {
       uiConsole("Not logged in");
       return;
     }
-    const web3 = new Web3(mocaEmbed.provider as any);
-
-    // Get user's Ethereum public address
-    const address = (await web3.eth.getAccounts())[0];
+    const web3 = new Web3(mocaEmbed?.provider as any);
 
     // Get user's balance in ether
     const balance = web3.utils.fromWei(
-      await web3.eth.getBalance(address), // Balance is in wei
+      await web3.eth.getBalance(aaAccount), // Balance is in wei
       "ether"
     );
     uiConsole(balance);
@@ -107,20 +128,19 @@ function App() {
       uiConsole("Not logged in");
       return;
     }
-    const web3 = new Web3(mocaEmbed.provider as any);
-
-    // Get user's Ethereum public address
-    const fromAddress = (await web3.eth.getAccounts())[0];
-
-    const originalMessage = "YOUR_MESSAGE";
-
-    // Sign the message
-    const signedMessage = await web3.eth.personal.sign(
-      originalMessage,
-      fromAddress,
-      "test password!" // configure your own password here.
-    );
-    uiConsole(signedMessage);
+    try {
+      const web3 = new Web3(mocaEmbed?.provider as any);
+      const originalMessage = "YOUR_MESSAGE";
+      // Sign the message
+      const signedMessage = await web3.eth.personal.sign(
+        originalMessage,
+        eoaAccount,
+        "test password!" // configure your own password here.
+      );
+      uiConsole(signedMessage);
+    } catch (error) {
+      uiConsole(error);
+    }
   };
   // IMP END - Blockchain Calls
 
