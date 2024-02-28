@@ -39,34 +39,40 @@ function App() {
           chainConfig,
           enableLogging: true,
         });
-        // Update provider on chain change
-        mocaEmbed.provider.on("chainChanged", async (chain) => {
-          console.log("check: chainChanged", chain);
-          // getCurrentChain();
-        });
 
-        // Update provider on accountsChanged
-        mocaEmbed.provider.on("accountsChanged", async (accounts) => {
-          console.log("check: accountsChanged", accounts);
-          if (eoaAccount.length > 0 && accounts.length === 0) {
-            // logout
-            setEoaAccount("");
-            setAaAcount("");
-            setLoggedIn(false);
-            return;
-          }
-          if (accounts.length > 0) {
-            // auto login
-            // TODO: fix issue that it returns 1 account
-          }
-        });
+        if (mocaEmbed.isLoggedIn) {
+          setLoggedIn(true);
+          await getAccounts();
+        }
+        // Update provider on chain change
+        // mocaEmbed.provider.on("chainChanged", async (chain) => {
+        //   console.log("check: chainChanged", chain);
+        //   // getCurrentChain();
+        // });
+
+        // // Update provider on accountsChanged
+        // mocaEmbed.provider.on("accountsChanged", async (accounts) => {
+        //   console.log("check: accountsChanged", accounts);
+        //   if (eoaAccount.length > 0 && accounts.length === 0) {
+        //     // logout
+        //     setEoaAccount("");
+        //     setAaAcount("");
+        //     setLoggedIn(false);
+        //     return;
+        //   }
+        //   if (accounts.length > 0) {
+        //     // auto login
+        //     // TODO: fix issue that it returns 1 account
+        //   }
+        // });
         setMocaEmbed(mocaEmbed);
       } catch (error) {
         console.error(error);
       }
     };
     init();
-  }, [eoaAccount]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const login = async () => {
     try {
@@ -102,9 +108,10 @@ function App() {
       return;
     }
     const web3 = new Web3(mocaEmbed?.provider as any);
-
     // Get user's Ethereum public address
     const address = await web3.eth.getAccounts();
+    setAaAcount(address[0]);
+    setEoaAccount(address[1]);
     uiConsole(address);
   };
 
