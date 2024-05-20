@@ -5,7 +5,7 @@
   "//IMP START": "IMP START - Web3Auth Installation",
   "dependencies": {
     "@toruslabs/ethereum-controllers": "^5.5.1",
-    "@types/node": "^18.11.18",
+    "@types/node": "^20.12.12",
     "@types/react": "^18.0.26",
     "@types/react-dom": "^18.0.10",
     "@web3auth/base": "^8.0.0",
